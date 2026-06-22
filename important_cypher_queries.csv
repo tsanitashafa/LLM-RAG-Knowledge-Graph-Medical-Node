@@ -1,0 +1,413 @@
+name,description,query,id,parentId,isFolder
+EAS,,,0,,true
+List Projection,,"CALL gds.graph.list()
+YIELD graphName, nodeCount, relationshipCount, schema
+RETURN graphName, nodeCount, relationshipCount, schema.nodes AS NodeLabels, schema.relationships AS RelTypes",1,0,false
+Projection All,,"CALL gds.graph.project(
+  'medicalGraph',
+  ['Penyakit', 'Gejala', 'Obat', 'Treatment', 'Kategori'], // Semua label
+  {
+    MEMILIKI_GEJALA: {orientation: 'UNDIRECTED'},
+    DIOBATI_DENGAN: {orientation: 'UNDIRECTED'},
+    DITREATMENT_DENGAN: {orientation: 'UNDIRECTED'},
+    TERMASUK_KATEGORI: {orientation: 'UNDIRECTED'}
+  }
+)",2,0,false
+Projection Penyakit-Gejala,,"CALL gds.graph.project(
+  'symptomGraph',         // Nama proyeksi baru
+  ['Penyakit', 'Gejala'],    // Hanya label tertentu yang dipilih
+  {
+    MEMILIKI_GEJALA: {       // Relasi yang menghubungkan kedua label tersebut
+      orientation: 'UNDIRECTED'
+    }
+  }
+)",3,0,false
+Projection Penyakit-Treatment,,"CALL gds.graph.project(
+  'treatmentGraph',
+  ['Penyakit', 'Treatment'],
+  {
+    DITREATMENT_DENGAN: {orientation: 'UNDIRECTED'}
+  }
+)",4,0,false
+Projection Penyakit-Kategori,,"CALL gds.graph.project(
+  'categoryGraph',
+  ['Penyakit', 'Kategori'],
+  {
+    TERMASUK_KATEGORI: {orientation: 'UNDIRECTED'}
+  }
+)",5,0,false
+Projection Penyakit-Obat,,"CALL gds.graph.project(
+  'medicineGraph',
+  ['Penyakit', 'Obat'],
+  {
+    DIOBATI_DENGAN: {orientation: 'UNDIRECTED'}
+  }
+)",6,0,false
+Projection Obat-Gejala,,"CALL gds.graph.project(
+  'medicineSymptomGraph',
+  ['Obat', 'Penyakit', 'Gejala'],
+  {
+    DIOBATI_DENGAN: {orientation: 'UNDIRECTED'},
+    MEMILIKI_GEJALA: {orientation: 'UNDIRECTED'}
+  }
+)",7,0,false
+Cara Cek Nama Label,,"MATCH (k:Treatment)
+RETURN labels(k) AS label, keys(k) AS properti_yang_ada
+LIMIT 1",8,0,false
+Cara Drop Projection,,CALL gds.graph.drop('treatmentGraph'),9,0,false
+Centrality All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel, n.kategoriLabel) AS Nama,
+    score
+ORDER BY score DESC",10,0,false
+Centrality Penyakit-All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+WHERE n:Penyakit 
+RETURN n.`Property 1` AS Nama_Penyakit, score
+ORDER BY score DESC",11,0,false
+Centrality Penyakit-Gejala,,"CALL gds.betweenness.stream('symptomGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`) AS Nama,
+    score
+ORDER BY score DESC",12,0,false
+Centrality Penyakit-Treatment,,"CALL gds.betweenness.stream('treatmentGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`) AS Nama,
+    score
+ORDER BY score DESC",13,0,false
+Centrality Penyakit-Kategori,,"CALL gds.betweenness.stream('categoryGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.kategoriLabel) AS Nama,
+    score
+ORDER BY score DESC",14,0,false
+Centrality Penyakit-Obat,,"CALL gds.betweenness.stream('medicineGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel) AS Nama,
+    score
+ORDER BY score DESC",15,0,false
+Centrality  Gejala-All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+WHERE n:Gejala 
+RETURN n.`Property 1` AS Nama_Gejala, score
+ORDER BY score DESC",16,0,false
+Centrality Treatment-All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+WHERE n:Treatment 
+RETURN n.`Property 1` AS Nama_Treatment, score
+ORDER BY score DESC",17,0,false
+Centrality Kategori-All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+WHERE n:Kategori 
+RETURN n.`kategoriLabel` AS Nama_Kategori, score
+ORDER BY score DESC",18,0,false
+Centrality Obat-All,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+WHERE n:Obat 
+RETURN n.`obatLabel` AS Nama_Obat, score
+ORDER BY score DESC",19,0,false
+Centrality Penyakit-Gejala-Obat,,"CALL gds.betweenness.stream('medicineSymptomGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel) AS Nama,
+    score
+ORDER BY score DESC",20,0,false
+Kemiripan antar penyakit berdasarkan keseluruhan model (Tanpa Duplikasi Terbalik),,"// Kemiripan antar penyakit berdasarkan keseluruhan model (Tanpa Duplikasi Terbalik)
+CALL gds.nodeSimilarity.stream('medicalGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Penyakit AND n2:Penyakit 
+  AND elementId(n1) < elementId(n2) // Filter krusial: memastikan tiap pasangan unik hanya muncul sekali
+RETURN 
+    n1.`Property 1` AS Penyakit_A, 
+    n2.`Property 1` AS Penyakit_B, 
+    similarity
+ORDER BY similarity DESC",21,0,false
+Kemiripan antar penyakit berdasarkan gejalanya,,"// Kemiripan antar penyakit berdasarkan gejalanya
+CALL gds.nodeSimilarity.stream('symptomGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Penyakit AND n2:Penyakit 
+  AND elementId(n1) < elementId(n2) // Filter krusial: memastikan tiap pasangan unik hanya muncul sekali
+RETURN 
+    n1.`Property 1` AS Penyakit_A, 
+    n2.`Property 1` AS Penyakit_B, 
+    similarity
+ORDER BY similarity DESC",22,0,false
+Kemiripan antar penyakit berdasarkan treatmentnya,,"// Kemiripan antar penyakit berdasarkan treatmentnya
+CALL gds.nodeSimilarity.stream('treatmentGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Penyakit AND n2:Penyakit 
+  AND elementId(n1) < elementId(n2) // Filter krusial: memastikan tiap pasangan unik hanya muncul sekali
+RETURN 
+    n1.`Property 1` AS Penyakit_A, 
+    n2.`Property 1` AS Penyakit_B, 
+    similarity
+ORDER BY similarity DESC",23,0,false
+Kemiripan antar penyakit berdasarkan kategorinya,,"// Kemiripan antar penyakit berdasarkan kategorinya
+CALL gds.nodeSimilarity.stream('categoryGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Penyakit AND n2:Penyakit 
+  AND elementId(n1) < elementId(n2) // Filter krusial: memastikan tiap pasangan unik hanya muncul sekali
+RETURN 
+    n1.`Property 1` AS Penyakit_A, 
+    n2.`Property 1` AS Penyakit_B, 
+    similarity
+ORDER BY similarity DESC",24,0,false
+Kemiripan antar penyakit berdasarkan obatnya,,"// Kemiripan antar penyakit berdasarkan obatnya
+CALL gds.nodeSimilarity.stream('medicineGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Penyakit AND n2:Penyakit 
+  AND elementId(n1) < elementId(n2) // Filter krusial: memastikan tiap pasangan unik hanya muncul sekali
+RETURN 
+    n1.`Property 1` AS Penyakit_A, 
+    n2.`Property 1` AS Penyakit_B, 
+    similarity
+ORDER BY similarity DESC",25,0,false
+Kemiripan antar gejala berdasarkan keseluruhan,,"// Kemiripan antar gejala berdasarkan keseluruhan
+CALL gds.nodeSimilarity.stream('medicalGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Gejala AND n2:Gejala AND elementId(n1) < elementId(n2)
+RETURN n1.`Property 1` AS Gejala_A, n2.`Property 1` AS Gejala_B, similarity
+ORDER BY similarity DESC",26,0,false
+Kemiripan antar treatment berdasarkan keseluruhan,,"// Kemiripan antar treatment berdasarkan keseluruhan
+CALL gds.nodeSimilarity.stream('medicalGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Treatment AND n2:Treatment AND elementId(n1) < elementId(n2)
+RETURN n1.`Property 1` AS Treatment_A, n2.`Property 1` AS Treatment_B, similarity
+ORDER BY similarity DESC",27,0,false
+Kemiripan antar kategori berdasarkan keseluruhan,,"// Kemiripan antar kategori berdasarkan keseluruhan
+CALL gds.nodeSimilarity.stream('medicalGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Kategori AND n2:Kategori AND elementId(n1) < elementId(n2)
+RETURN n1.kategoriLabel AS Kategori_A, n2.kategoriLabel AS Kategori_B, similarity
+ORDER BY similarity DESC",28,0,false
+Kemiripan antar obat berdasarkan keseluruhan,,"// Kemiripan antar obat berdasarkan keseluruhan
+CALL gds.nodeSimilarity.stream('medicalGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Obat AND n2:Obat AND elementId(n1) < elementId(n2)
+RETURN n1.obatLabel AS Obat_A, n2.obatLabel AS Obat_B, similarity
+ORDER BY similarity DESC",29,0,false
+Kemiripan antar obat berdasarkan gejala,,"CALL gds.nodeSimilarity.stream('medicineSymptomGraph')
+YIELD node1, node2, similarity
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, similarity
+WHERE n1:Obat AND n2:Obat AND elementId(n1) < elementId(n2)
+RETURN 
+    n1.obatLabel AS Obat_A, 
+    n2.obatLabel AS Obat_B, 
+    similarity
+ORDER BY similarity DESC",30,0,false
+Community Penyakit-All,,"CALL gds.louvain.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",31,0,false
+Community Penyakit-Gejala,,"CALL gds.louvain.stream('symptomGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",32,0,false
+Community Penyakit-Treatment,,"CALL gds.louvain.stream('treatmentGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",33,0,false
+Community Penyakit-Kategori,,"CALL gds.louvain.stream('categoryGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",34,0,false
+Community Penyakit-Obat,,"CALL gds.louvain.stream('medicineGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",35,0,false
+Community Obat-All,,"CALL gds.louvain.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Obat
+RETURN 
+    communityId, 
+    collect(n.obatLabel) AS Daftar_Obat,
+    count(n) AS Jumlah_Obat
+ORDER BY Jumlah_Obat DESC",36,0,false
+Community Kategori-All,,"CALL gds.louvain.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Kategori
+RETURN 
+    communityId, 
+    collect(n.kategoriLabel) AS Daftar_Kategori,
+    count(n) AS Jumlah_Kategori
+ORDER BY Jumlah_Kategori DESC",37,0,false
+Community Gejala-All,,"CALL gds.louvain.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Gejala // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Gejala,
+    count(n) AS Jumlah_Gejala
+ORDER BY Jumlah_Gejala DESC",38,0,false
+Community Treatment-All,,"CALL gds.louvain.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Treatment // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Treatment,
+    count(n) AS Jumlah_Treatment
+ORDER BY Jumlah_Treatment DESC",39,0,false
+Community Obat-Gejala,,"CALL gds.louvain.stream('medicineSymptomGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Obat // Kita fokus melihat pengelompokan penyakitnya
+RETURN 
+    communityId, 
+    collect(n.obatLabel) AS Daftar_Obat,
+    count(n) AS Jumlah_Obat
+ORDER BY Jumlah_Obat DESC",40,0,false
+Cara Cek Projection,,"CALL gds.graph.list('medicineGraph')
+YIELD graphName, nodeCount, relationshipCount, schema
+RETURN 
+    graphName, 
+    nodeCount, 
+    relationshipCount, 
+    schema.nodes AS NodeLabels, 
+    schema.relationships AS RelTypes",41,0,false
+Cara Cek Graf 2 Node,,"MATCH (o:Obat)-[r1:DIOBATI_DENGAN]-(p:Penyakit)
+RETURN o, r1, p
+LIMIT 100",42,0,false
+Cara Cek Graf 3 Node,,"MATCH (o:Obat)-[r1:DIOBATI_DENGAN]-(p:Penyakit)-[r2:MEMILIKI_GEJALA]-(g:Gejala)
+RETURN o, r1, p, r2, g
+LIMIT 100",43,0,false
+Degree Centrality,,"CALL gds.degree.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel, n.kategoriLabel) AS Nama,
+    score
+ORDER BY score DESC",44,0,false
+Page Rank Centrality,,"CALL gds.pageRank.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel, n.kategoriLabel) AS Nama,
+    score
+ORDER BY score DESC",45,0,false
+Closeness Centrality,,"CALL gds.closeness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+RETURN 
+    labels(n)[0] AS Label,
+    coalesce(n.`Property 1`, n.obatLabel, n.kategoriLabel) AS Nama,
+    score
+ORDER BY score DESC",46,0,false
+Label Propagation Algorithm,,"CALL gds.labelPropagation.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",47,0,false
+Weakly Connected Components,,"CALL gds.wcc.stream('medicalGraph')
+YIELD nodeId, componentId AS communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",48,0,false
+Leiden Algorithm (Penyempurnaan Louvain),,"CALL gds.leiden.stream('medicalGraph')
+YIELD nodeId, communityId
+WITH gds.util.asNode(nodeId) AS n, communityId
+WHERE n:Penyakit
+RETURN 
+    communityId, 
+    collect(n.`Property 1`) AS Daftar_Penyakit,
+    count(n) AS Jumlah_Penyakit
+ORDER BY Jumlah_Penyakit DESC",49,0,false
+FastRP medicineGraph,,"CALL gds.fastRP.mutate(
+    'medicineSymptomGraph',
+    {
+        embeddingDimension: 64,
+        iterationWeights: [0.0, 1.0, 1.0],
+        randomSeed: 42,
+        mutateProperty: 'embedding'
+    }
+)
+YIELD nodePropertiesWritten, computeMillis
+RETURN nodePropertiesWritten, computeMillis;",50,0,false
+ClusterID,,"CALL gds.louvain.write('medicalGraph', {
+  writeProperty: 'clusterId'
+})
+YIELD communityCount, modularity
+RETURN communityCount, modularity;",51,0,false
+Similarity,,"CALL gds.nodeSimilarity.write('medicalGraph', {
+  writeRelationshipType: 'MIRIP_DENGAN',
+  writeProperty: 'similarity'
+})
+YIELD nodesCompared, relationshipsWritten
+RETURN nodesCompared, relationshipsWritten;",52,0,false
+Betweeness Centrality,,"CALL gds.betweenness.stream('medicalGraph')
+YIELD nodeId, score
+WITH gds.util.asNode(nodeId) AS n, score
+SET n.betweenness = score
+RETURN labels(n)[0] AS Label,
+       coalesce(n.nama, n.qid) AS Nama,
+       score AS Betweenness
+ORDER BY Betweenness DESC
+LIMIT 20;",53,0,false
