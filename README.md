@@ -282,24 +282,7 @@ OpenRouter model: openai/gpt-4o-mini
 
 ---
 
-## 11. Screenshot Documentation
-
-The required screenshots include:
-
-1. Neo4j database connection
-2. Query result or graph builder output
-3. Graph analytics / ML output
-4. LLM demo: Text-to-Cypher, Graph RAG, or Cypher translation
-
-Screenshots can be stored in:
-
-```text
-screenshots/
-```
-
----
-
-## 12. Repository URL
+## 11. Repository URL
 
 ```text
 https://github.com/tsanitashafa/LLM-RAG-Knowledge-Graph-Medical-Node
@@ -307,25 +290,14 @@ https://github.com/tsanitashafa/LLM-RAG-Knowledge-Graph-Medical-Node
 
 ---
 
-## 13. Video Demonstration
+## 12. Video Demonstration
 
 YouTube video URL:
 
 ```text
-[Insert YouTube video URL here]
+https://youtu.be/3stQnj5ac1U
 ```
 
-Video content:
-
-```text
-1 minute  : Background and architecture
-2 minutes : Code execution and result demo
-1 minute  : Graph analysis / insight
-1 minute  : Conclusion and lessons learned
-```
-
----
-
-## 14. Conclusion
+## 13. Conclusion
 
 This project implements a medical knowledge graph with Neo4j and LLM integration. The system supports graph construction, graph analytics, natural language query translation, graph building from text, and Graph RAG through a Streamlit interface.
